@@ -14,13 +14,16 @@ func workers(ctx context.Context, id int, mainCh <-chan int, doneCh chan<- struc
 	for {
 		select {
 		case <-ctx.Done():
+			fmt.Printf("worker %d exiting\n", id)
+			doneCh <- struct{}{}
+			return
 		case value, ok := <-mainCh:
 			if !ok {
-				fmt.Printf("Worker %d channel closed, exiting\n", id)
+				fmt.Printf("worker %d channel closed, exiting\n", id)
 				doneCh <- struct{}{}
 				return
 			}
-			fmt.Printf("Worker %d received: %d\n", id, value)
+			fmt.Printf("worker %d received: %d\n", id, value)
 		}
 	}
 }
@@ -57,7 +60,7 @@ func main() {
 		for i := 0; ; i++ {
 			select {
 			case <-ctx.Done():
-				fmt.Println("Main goroutine exiting")
+				fmt.Println("main goroutine exiting")
 				close(mainCh)
 				return
 
@@ -69,12 +72,12 @@ func main() {
 	}()
 
 	<-signalCh
-	fmt.Println("Received shutdown signal")
+	fmt.Println("received shutdown signal")
 	cancel()
 
 	for i := 0; i < workerCount; i++ {
 		<-doneCh
 	}
 
-	fmt.Println("Graceful shutdown complete")
+	fmt.Println("graceful shutdown complete")
 }
